@@ -116,7 +116,14 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # create mask for each class in each example in batch
+    mask = np.zeros((num_train, num_classes))
+    mask[margin > 0] = 1
+    mask[np.arange(num_train), y] = -1*np.sum(mask, axis=1)
+    # Dot X transpose and mask to calculate gradients, take mean and add regularizer
+    dW = X.T.dot(mask)
+    dW /= num_train
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
