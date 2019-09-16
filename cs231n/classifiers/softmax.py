@@ -3,6 +3,10 @@ import numpy as np
 from random import shuffle
 from past.builtins import xrange
 
+def softmax(scores):
+    exp_scores = np.exp(scores - np.max(scores))
+    return exp_scores / np.sum(exp_scores)
+
 def softmax_loss_naive(W, X, y, reg):
     """
     Softmax loss function, naive implementation (with loops)
@@ -33,11 +37,37 @@ def softmax_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_classes = W.shape[1]
+    num_train = X.shape[0]
+    loss = 0.0
+    for i in range(num_train):
+        # calculate probabilities
+        probs = softmax(X[i].dot(W))
+        loss += -np.log(probs[y[i]])
+        
+        dW[:, y[i]] += (probs[y[i]] - 1) * X[i]
+        for j in range(num_classes):
+            if j == y[i]:
+                continue
+            dW[:, j] += probs[j] * X[i]
+        
+    loss /= num_train
+    dW /= num_train
+    
+    # Add regularization.
+    loss += reg * np.sum(W * W)
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
+
+
+def softmax_vectorized(scores):
+    num_train = scores.shape[0]
+    exp_scores = np.exp(scores - np.max(scores))
+    exp_scores_sum = np.sum(exp_scores, axis=1).reshape(num_train, 1)
+    return np.divide(exp_scores, exp_scores_sum)
 
 
 def softmax_loss_vectorized(W, X, y, reg):
@@ -58,7 +88,21 @@ def softmax_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_classes = W.shape[1]
+    num_train = X.shape[0]
+    
+    probs = softmax_vectorized(X.dot(W))
+    corr_probs = probs[range(num_train), y]
+    
+    loss = -np.sum(np.log(corr_probs))
+    loss /= num_train
+    loss += reg * np.sum(W * W)
+
+    # gradient computation
+    probs[range(num_train), y] = corr_probs - 1
+    dW = X.T.dot(probs)
+    dW /= num_train
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
