@@ -5,6 +5,7 @@ from builtins import object
 import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
+from .softmax import softmax_vectorized
 
 class TwoLayerNet(object):
     """
@@ -80,7 +81,8 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h = np.maximum(np.dot(X, W1) + b1, 0)
+        scores = np.dot(h, W2) + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +100,15 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        num_train = X.shape[0]
+
+        probs = softmax_vectorized(scores)
+        corr_probs = probs[range(num_train), y]
+
+        loss = -np.sum(np.log(corr_probs))
+        loss /= num_train
+        # Not adding regularization for bias weights.
+        loss += reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +121,22 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        probs[range(num_train), y] = corr_probs - 1
+        dW2 = h.T.dot(probs)
+        dW2 /= num_train
+        dW2 += 2 * reg * W2
+        db2 = np.sum(probs, 0) / num_train # No regularization for bias
+        grads['W2'] = dW2
+        grads['b2'] = db2
+        
+        hg = probs.dot(W2.T) # hidden gradients
+        hg[h == 0] = 0  # relu
+        dW1 = X.T.dot(hg)
+        dW1 /= num_train
+        dW1 += 2 * reg * W1
+        db1 = np.sum(hg, 0) / num_train # No regularization for bias
+        grads['W1'] = dW1
+        grads['b1'] = db1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -156,7 +181,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            indices = np.random.choice(num_train, batch_size)
+            X_batch = X[indices, :]
+            y_batch = y[indices]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +199,8 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            for k in self.params:
+                self.params[k] -= learning_rate*grads[k]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +246,10 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h = np.maximum(0, X.dot(self.params['W1']) + self.params['b1'])
+        scores = np.dot(h, self.params['W2']) + self.params['b2']
+        y_pred = np.argmax(scores, axis=1)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
